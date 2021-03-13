@@ -1,16 +1,16 @@
-#LinkedIn Report
+# LinkedIn Report
 I want to know some stats about my LinkedIn connections!
 
-##Installation
+## Installation
 This project needs python3 and pip
 To install pip dependencies:
 - pip install -r pip_requirements
 
-##Usage
+## Usage
 Set up config.json based on the values on configs.json.default
 - python report.py
 
-##TODO
+## TODO
 - Store data on an sqlite database
 - Find a better gender api
 - Unit test everything
