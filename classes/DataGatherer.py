@@ -49,7 +49,9 @@ class DataGatherer:
                 else:
                     logging.info('Could not proceed to ' + str(i) + ', was sent to ' + self.browser.current_url)
                     break
-            self.collect_page_data()
+            gathered = self.collect_page_data()
+            if gathered == 0:
+                break
             i = i + 1
         self.browser.quit
 
@@ -69,6 +71,8 @@ class DataGatherer:
             currentDataPoint = ProfileDataModel(currentName, currentEmployment, currentCity)
             self.profileData.append(currentDataPoint)
             i = i + 1
+
+        return i
 
     def fillTestData(self):
         self.profileData.append(ProfileDataModel('João da silva', 'teste1', 'cidade1'))
