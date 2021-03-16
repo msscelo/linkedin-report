@@ -1,31 +1,37 @@
 import os, json, logging
 from selenium import webdriver
-from bs4 import BeautifulSoup
+# from bs4 import BeautifulSoup
 from webdriver_manager.chrome import ChromeDriverManager
 from .ProfileDataModel import ProfileDataModel
+from .DbManager import DbManager
 
 class DataGatherer:
-    profileData = []
+    profile_data = []
+
     def __init__(self, configurations):
         self.configurations = configurations
+
+    def gather(self):
+        if self.configurations.get_config('skip_gathering') == True:
+            return
+        if self.configurations.get_config('debug_mode') == True:
+            return self.fill_test_data()
+
+        logging.info('Starting the gathering of data')
 
         options = webdriver.ChromeOptions()
         options.add_argument('--no-sandbox')
         options.add_argument('--headless')
         self.browser = webdriver.Chrome(executable_path=ChromeDriverManager().install(), options=options)
-        self.profileData = []
-
-    def gather(self):
-        logging.info('Starting the gathering of data')
 
         #loading the login page
         self.browser.get('https://www.linkedin.com/uas/login')
 
         # needs to be logged in
         username_input = self.browser.find_element_by_id('username')
-        username_input.send_keys(self.configurations.getConfig('linkedin_username'))
+        username_input.send_keys(self.configurations.get_config('linkedin_username'))
         password_input = self.browser.find_element_by_id('password')
-        password_input.send_keys(self.configurations.getConfig('linkedin_password'))
+        password_input.send_keys(self.configurations.get_config('linkedin_password'))
         password_input.submit()
 
         # checking for a sucessful login
@@ -57,27 +63,34 @@ class DataGatherer:
 
     def collect_page_data(self):
         i = 0
-        while True:
-            currentName = ''
-            currentEmployment = ''
-            currentCity = ''
-            try:
-                currentName = self.browser.execute_script("return document.getElementsByClassName('entity-result__title-text')[" + str(i) + "].children[0].children[0].children[0].innerText")
-                currentEmployment = self.browser.execute_script("return document.getElementsByClassName('entity-result__title-text')[" + str(i) + "].parentElement.parentElement.parentElement.parentElement.parentElement.children[1].children[0].innerText")
-                currentCity = self.browser.execute_script("return document.getElementsByClassName('entity-result__title-text')[" + str(i) + "].parentElement.parentElement.parentElement.parentElement.parentElement.children[1].children[1].innerText")
-            except:
-                if currentName == '':
-                    break
-            currentDataPoint = ProfileDataModel(currentName, currentEmployment, currentCity)
-            self.profileData.append(currentDataPoint)
-            i = i + 1
+        with DbManager(self.configurations) as db_manager:
+            while True:
+                currentName = ''
+                currentEmployment = ''
+                currentCity = ''
+                try:
+                    currentName = self.browser.execute_script("return document.getElementsByClassName('entity-result__title-text')[" + str(i) + "].children[0].children[0].children[0].innerText")
+                    currentEmployment = self.browser.execute_script("return document.getElementsByClassName('entity-result__title-text')[" + str(i) + "].parentElement.parentElement.parentElement.parentElement.parentElement.children[1].children[0].innerText")
+                    currentCity = self.browser.execute_script("return document.getElementsByClassName('entity-result__title-text')[" + str(i) + "].parentElement.parentElement.parentElement.parentElement.parentElement.children[1].children[1].innerText")
+                except:
+                    if currentName == '':
+                        break
+                currentProfile = ProfileDataModel(currentName, currentEmployment, currentCity)
+                self.profile_data.append(currentProfile)
+                db_manager.insert_profile(currentProfile)
+                i = i + 1
 
         return i
 
-    def fillTestData(self):
-        self.profileData.append(ProfileDataModel('João da silva', 'teste1', 'cidade1'))
-        self.profileData.append(ProfileDataModel('Maria da silva', 'teste2', 'cidade2'))
-        self.profileData.append(ProfileDataModel('Hank da silva', 'teste3', 'cidade3'))
-        self.profileData.append(ProfileDataModel('Apu da silva', 'teste4', 'cidade4'))
-        self.profileData.append(ProfileDataModel('Yoko Ono', 'teste5', 'cidade5'))
-
+    def fill_test_data(self):
+        with DbManager(self.configurations) as db_manager:
+            self.profile_data.append(ProfileDataModel('Test', 'test0', 'city'))
+            db_manager.insert_profile(self.profile_data[-1])
+            # self.profile_data.append(ProfileDataModel('João da silva', 'test1', 'city1'))
+            # db_manager.insert_profile(self.profile_data[-1])
+            # self.profile_data.append(ProfileDataModel('Maria da silva', 'test2', 'city2'))
+            # db_manager.insert_profile(self.profile_data[-1])
+            # self.profile_data.append(ProfileDataModel('João Sauro', 'test3', 'city3'))
+            # db_manager.insert_profile(self.profile_data[-1])
+            # self.profile_data.append(ProfileDataModel('Maria Sauro', 'test4', 'city4'))
+            # db_manager.insert_profile(self.profile_data[-1])

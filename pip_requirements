@@ -1,4 +1,4 @@
-requests
-selenium
-unidecode
-webdriver-manager
+requests==2.25.1
+selenium==3.141.0
+Unidecode==1.2.0
+webdriver-manager==3.3.0

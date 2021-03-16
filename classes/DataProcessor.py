@@ -1,26 +1,31 @@
-import logging
+import logging, requests, json, unidecode
 from .ProfileDataModel import ProfileDataModel
-import requests
-import json
-import unidecode
+from .DbManager import DbManager
 
 class DataProcessor:
     def __init__(self, configurations):
         self.configurations = configurations
 
-    def process(self, profileData):
+    def process(self):
         logging.info('Starting the processing of data')
         i = 0
-        while i < len(profileData):
-            profileData[i].gender = self.getGenderViaGenderize(profileData[i])
-            i = i + 1
+        with DbManager(self.configurations) as db_manager:
+            profiles = db_manager.get_profiles()
+            for currentProfile in profiles:
+                if currentProfile.gender == '':
+                    gender = db_manager.get_gender(currentProfile.name_gender_search)
+                    if gender == '':
+                        gender = self.getGenderViaGenderize(currentProfile)
+                        db_manager.insert_gender(currentProfile.name_gender_search, gender)
+                    currentProfile.gender = gender
+                    db_manager.update_gender(currentProfile)
 
     def getGenderViaGenderize(self, profile):
         urlGenderize = 'https://api.genderize.io'
-        name = unidecode.unidecode(profile.name.split(' ', 1)[0])
+        name = unidecode.unidecode(profile.name_gender_search)
         params = dict(
             name = name,
-            country_id = self.configurations.getConfig('default_country')
+            country_id = self.configurations.get_config('default_country')
         )
         resp = requests.get(url=urlGenderize, params=params)
         gender = 'X'

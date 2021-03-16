@@ -1,44 +1,47 @@
 import os, json, logging
+from .DbManager import DbManager
 
 class DataDisplayer:
     def __init__(self, configurations):
         self.configurations = configurations
 
-    def display(self, profileData):
-        self.profileData = profileData
+    def display(self,):
         logging.info('Starting the displaying of data')
-        self.displayAll(profileData)
-        self.displayGenderStats(profileData)
+        self.display_all()
+        self.display_gender_stats()
 
-    def displayAll(self, profileData):
-        message = "Total number of profiles: " + str(len(profileData))
+    def display_all(self):
+        profiles = []
+        with DbManager(self.configurations) as db_manager:
+            profiles = db_manager.get_profiles()
+
+        message = "Total number of profiles: " + str(len(profiles))
         logging.info(message)
         print(message)
 
-        for currentProfile in profileData:
-            message = currentProfile.formatted()
+        for current_profile in profiles:
+            message = current_profile.formatted()
             logging.info(message)
             print(message)
 
-    def displayGenderStats(self, profileData):
-        countFemale = 0
-        countMale = 0
-        countUndefined = 0
-        for currentProfile in profileData:
-            if currentProfile.gender == 'F':
-                countFemale += 1
-            elif currentProfile.gender == 'M':
-                countMale += 1
-            else:
-                countUndefined += 1
-        message = "Total of female: " + str(countFemale) + " males: " + str(countMale) + " and undefined: " + str(countUndefined)
-        logging.info(message)
-        print(message)
+    def display_gender_stats(self):
+        profiles = []
+        with DbManager(self.configurations) as db_manager:
+            gender_data = db_manager.get_gender_totals()
+            message = "Total of females: " + str(gender_data['female']) + " males: " + str(gender_data['male']) + " and undefined: " + str(gender_data['undefined'])
+            logging.info(message)
+            print(message)
 
-        proportionFemale = str(round(countFemale * 100 / len(profileData), 1))
-        proportionMale = str(round(countMale * 100 / len(profileData), 1))
-        proportionUndefined = str(round(countUndefined * 100 / len(profileData), 1))
+            proportion_female = str(round(gender_data['female'] * 100 / gender_data['total'], 1))
+            proportion_male = str(round(gender_data['male'] * 100 / gender_data['total'], 1))
+            proportion_undefined = str(round(gender_data['undefined'] * 100 / gender_data['total'], 1))
 
-        message = "Proportion of female: " + proportionFemale + " males: " + proportionMale + " and undefined: " + proportionUndefined
-        logging.info(message)
-        print(message)
+            message = "Proportion of females: " + proportion_female + " males: " + proportion_male + " and undefined: " + proportion_undefined
+            logging.info(message)
+            print(message)
+
+            unnacounted = gender_data['female'] + gender_data['male'] + gender_data['undefined'] - gender_data['total']
+            if unnacounted != 0:
+                message = "There are " + unnacounted + " profiles with an invalid gender"
+                logging.info(message)
+                print(message)

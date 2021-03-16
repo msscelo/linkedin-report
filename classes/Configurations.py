@@ -1,25 +1,27 @@
 import os, json, logging
+from shutil import copyfile
 
 class Configurations:
     configs = {}
 
-    def __init__(self, executionPath):
-        self.executionPath = executionPath
-        self.configJsonPath = os.path.join(self.executionPath, 'configs.json')
-        logging.info('Config file in use: ' + self.configJsonPath)
-        self.reloadConfig()
+    def __init__(self, execution_path):
+        self.execution_path = execution_path
+        self.default_config_json_path = os.path.join(self.execution_path, 'configs.json.default')
+        self.config_json_path = os.path.join(self.execution_path, 'configs.json')
+        self.reload_config()
 
-    def reloadConfig(self):
-        if not os.path.exists(self.configJsonPath):
-            open(self.configJsonPath, 'w+')
+    def reload_config(self):
+        if not os.path.exists(self.config_json_path):
+            copyfile(self.default_config_json_path, self.config_json_path)
+            open(self.config_json_path, 'w+')
             f.write('{}')
             f.close()
 
-        with open(self.configJsonPath, 'r') as f:
+        with open(self.config_json_path, 'r') as f:
             self.configs = json.load(f)
 
-    def getConfig(self, configName):
-        if configName in self.configs:
-            return self.configs[configName]
+    def get_config(self, config_name):
+        if config_name in self.configs:
+            return self.configs[config_name]
 
         return ''
